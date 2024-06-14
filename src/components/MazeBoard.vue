@@ -68,6 +68,12 @@ const getAnnotation = (x: number, y: number) => {
 <template>
   <div class="container">
     <div class="header">
+      <div class="board-size">
+        <label for="width">幅</label>
+        <input id="width" type="number" v-model="width" min="5" max="101" :disabled="state === 'running'" />
+        <label for="height">高さ</label>
+        <input id="height" type="number" v-model="height" min="5" max="101" :disabled="state === 'running'" />
+      </div>
       <div class="controller">
         <button class="control-button" @click="start()" :disabled="state === 'running'">スタート</button>
         <button class="control-button" @click="stop()" :disabled="state === 'idle'">ストップ</button>
@@ -113,6 +119,11 @@ const getAnnotation = (x: number, y: number) => {
   display: flex;
   justify-content: center;
   gap: 32px;
+}
+
+.board-size {
+  display: flex;
+  gap: 8px;
 }
 
 .controller {

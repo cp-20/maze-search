@@ -20,8 +20,10 @@ jobs:
           bun install
           bun run build-only
 
-      - uses: actions/upload-pages-artifact@v1
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
+          name: github-pages
           path: dist
 
   deploy:

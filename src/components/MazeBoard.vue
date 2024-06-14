@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MazeCell from '@/components/MazeCell.vue';
 
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Maze, type MazeSolverAlgorithm, calcPriority } from '@/logic/maze'
 
 const solvers: Record<MazeSolverAlgorithm, string> = {
@@ -12,7 +12,15 @@ const solvers: Record<MazeSolverAlgorithm, string> = {
 }
 
 const width = ref(41)
+const widthAtom = computed({
+  get: () => (width.value - 1) / 2,
+  set: (value) => width.value = value * 2 + 1,
+})
 const height = ref(21)
+const heightAtom = computed({
+  get: () => (height.value - 1) / 2,
+  set: (value) => height.value = value * 2 + 1,
+})
 const step = ref(0)
 const interval = ref<number | undefined>(undefined)
 const intervalTime = ref(100)
@@ -70,9 +78,9 @@ const getAnnotation = (x: number, y: number) => {
     <div class="header">
       <div class="board-size">
         <label for="width">幅</label>
-        <input id="width" type="number" v-model="width" min="5" max="101" :disabled="state === 'running'" />
+        <input id="width" type="number" v-model="widthAtom" min="5" max="101" :disabled="state === 'running'" />
         <label for="height">高さ</label>
-        <input id="height" type="number" v-model="height" min="5" max="101" :disabled="state === 'running'" />
+        <input id="height" type="number" v-model="heightAtom" min="5" max="101" :disabled="state === 'running'" />
       </div>
       <div class="controller">
         <button class="control-button" @click="start()" :disabled="state === 'running'">スタート</button>

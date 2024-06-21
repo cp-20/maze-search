@@ -2,7 +2,7 @@
 
 import { PriorityQueue } from '@/logic/priority-queue'
 
-export type MazeSolverAlgorithm = 'bfs' | 'dfs' | 'dijkstra' | 'a-star'
+export type MazeSolverAlgorithm = 'bfs' | 'dfs' | 'random' | 'a-star'
 
 export type MazeCellState = 'start' | 'goal' | 'passage' | 'in-queue' | 'visited' | 'wall'
 
@@ -12,8 +12,8 @@ export const calcPriority = (solver: MazeSolverAlgorithm, cost: number, distance
       return cost
     case 'dfs':
       return -cost
-    case 'dijkstra':
-      return cost
+    case 'random':
+      return Math.floor(Math.random() * 100)
     case 'a-star':
       return cost + distance
   }
@@ -111,6 +111,19 @@ export class Maze {
     }
 
     return [x, y] as const
+  }
+
+  public copyWith({
+    solver,
+    width,
+    height
+  }: Partial<{ solver: MazeSolverAlgorithm; width: number; height: number }>): Maze {
+    const maze = new Maze(solver ?? this._solver, width ?? this._width, height ?? this._height)
+    maze._maze = this._maze.map((row) => row.slice())
+    maze._distance = this._distance.map((row) => row.slice())
+    maze._cost = this._cost.map((row) => row.slice())
+    maze.queue = new PriorityQueue<{ x: number; y: number }>([...this.queue.toArray()])
+    return maze
   }
 
   private calcDistance(x1: number, y1: number, x2: number, y2: number): number {

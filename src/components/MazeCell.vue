@@ -16,13 +16,13 @@ defineProps<Props>();
 
 <style scoped>
 .cell {
-  width: 32px;
-  height: 32px;
+  width: 16px;
+  height: 16px;
   display: grid;
   place-items: center;
   position: relative;
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 6px;
+  font-weight: 600;
 }
 
 .cell.start {
@@ -41,12 +41,11 @@ defineProps<Props>();
 
 .cell.in-queue {
   background-color: lightgreen;
-  color: hsl(120, 50%, 40%);
+  color: hsl(120, 50%, 30%);
 }
 
 .cell.visited {
   background-color: lightblue;
-  font-weight: bold;
   color: hsl(203, 92%, 60%)
 }
 

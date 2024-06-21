@@ -18,4 +18,20 @@ export class PriorityQueue<T> {
   public isEmpty() {
     return this.queue.length === 0
   }
+
+  public clear() {
+    this.queue = []
+  }
+
+  public toArray() {
+    return this.queue
+  }
+
+  public get length() {
+    return this.queue.length
+  }
+
+  public get values() {
+    return this.queue.map((item) => item.value)
+  }
 }

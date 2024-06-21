@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import MazeCell from '@/components/MazeCell.vue';
+import PresentialMazeBoard from '@/components/PresentialMazeBoard.vue';
 
 import { computed, ref, watch } from 'vue';
-import { Maze, type MazeSolverAlgorithm, calcPriority } from '@/logic/maze'
+import { Maze, type MazeSolverAlgorithm } from '@/logic/maze'
 
 const solvers: Record<MazeSolverAlgorithm, string> = {
   'a-star': 'A*',
-  'dijkstra': 'ダイクストラ法',
+  'random': 'ランダム法',
   'bfs': '幅優先探索',
   'dfs': '深さ優先探索',
 }
@@ -21,13 +21,31 @@ const heightAtom = computed({
   get: () => (height.value - 1) / 2,
   set: (value) => height.value = value * 2 + 1,
 })
-const step = ref(0)
+const steps = ref<number[]>([0, 0, 0, 0])
+const solved = ref<boolean[]>([false, false, false, false])
 const interval = ref<number | undefined>(undefined)
 const intervalTime = ref(100)
 const state = ref<'idle' | 'running'>('idle')
 
-const maze = ref<Maze>(new Maze('a-star', width.value, height.value))
-maze.value.generate();
+const initialMazes = computed(() => [
+  new Maze('bfs', width.value, height.value),
+  new Maze('dfs', width.value, height.value),
+  new Maze('random', width.value, height.value),
+  new Maze('a-star', width.value, height.value),
+])
+const mazes = ref<Maze[]>(initialMazes.value)
+
+const regenerate = () => {
+  const maze = mazes.value[0]
+  maze.generate();
+  mazes.value[1] = maze.copyWith({ solver: 'dfs' })
+  mazes.value[2] = maze.copyWith({ solver: 'random' })
+  mazes.value[3] = maze.copyWith({ solver: 'a-star' })
+  steps.value = [0, 0, 0, 0]
+  solved.value = [false, false, false, false]
+}
+
+regenerate()
 
 const start = () => {
   state.value = 'running'
@@ -41,36 +59,28 @@ const stop = () => {
 }
 
 const nextStep = () => {
-  const cell = maze.value.nextStep()
-  step.value++
-  if (cell === null) return stop();
-  if (cell[0] === width.value - 2 && cell[1] === height.value - 1) return stop();
-}
+  for (let i = 0; i < mazes.value.length; i++) {
+    if (solved.value[i]) continue
 
-const regenerate = () => {
-  maze.value.generate()
-  step.value = 0
+    const cell = mazes.value[i].nextStep()
+    steps.value[i] += cell === null ? 0 : 1
+    if (cell === null) {
+      solved.value[i] = true
+      continue
+    }
+    if (cell[0] === width.value - 2 && cell[1] === height.value - 1) {
+      solved.value[i] = true
+      continue
+    }
+  }
+  if (solved.value.every((s) => s)) stop()
 }
 defineExpose({ regenerate })
 
 watch([width, height], () => {
-  maze.value = new Maze(maze.value.solver, width.value, height.value)
+  mazes.value = initialMazes.value
   regenerate()
 })
-
-const getAnnotation = (x: number, y: number) => {
-  const cell = maze.value.maze[y][x]
-  const cost = maze.value.cost[y][x]
-  const distance = maze.value.distance[y][x]
-
-  if (cell === 'visited') return cost
-  if (cell === 'in-queue') return calcPriority(maze.value.solver, cost, distance)
-  if (cell === 'start') return 'S'
-  if (cell === 'goal') return 'G'
-
-  return ''
-}
-
 </script>
 
 <template>
@@ -87,12 +97,6 @@ const getAnnotation = (x: number, y: number) => {
         <button class="control-button" @click="stop()" :disabled="state === 'idle'">ストップ</button>
         <button class="control-button" @click="regenerate()" :disabled="state === 'running'">再生成</button>
       </div>
-      <div class="solver-select select">
-        <label for="solver">探索アルゴリズム</label>
-        <select id="solver" v-model="maze.solver" :disabled="state === 'running'">
-          <option v-for="(name, key) in solvers" :value="key" :key="key">{{ name }}</option>
-        </select>
-      </div>
       <div class="speed-select select">
         <label for="speed">スピード</label>
         <select id="speed" v-model="intervalTime" @change="if (state === 'running') { stop(); start(); }">
@@ -102,15 +106,15 @@ const getAnnotation = (x: number, y: number) => {
           <option value="500">ゆっくり (2マス/s)</option>
         </select>
       </div>
-      <div class="step-view">
-        ステップ: {{ step }}
-      </div>
     </div>
-    <div class="board">
-      <div v-for="(row, y) in maze.maze" class="column" :key="y">
-        <div v-for="(cell, x) in row" class="row" :key="x">
-          <MazeCell :state="cell" :annotation="getAnnotation(x, y)" />
+    <div class="boards">
+      <div v-for="(maze, i) in mazes" :key="maze.solver" class="board" :class="{ finished: solved[i] }">
+        <div class="board-header">
+          <h2 class="board-title">{{ solvers[maze.solver] }}</h2>
+          <div class="board-step">ステップ: {{ steps[i] }}</div>
         </div>
+        <PresentialMazeBoard class="board-main" :maze="maze.maze" :solver="maze.solver" :cost="maze.cost"
+          :distance="maze.distance" />
       </div>
     </div>
   </div>
@@ -138,21 +142,47 @@ const getAnnotation = (x: number, y: number) => {
   display: flex;
 }
 
-
 .select {
   display: flex;
   gap: 8px;
 }
 
-.column {
+.boards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.board-main {
+  position: relative;
+}
+
+.board.finished .board-step {
+  color: hsl(0, 70%, 50%);
+  font-weight: bold;
+}
+
+.board.finished .board-main::after {
+  content: 'SOLVED';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-color: #fff7;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: bold;
+  color: orange;
+}
+
+.board-header {
   display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
 }
 
-.column:not(:first-of-type) {
-  margin-top: -1px;
-}
-
-.row:not(:first-of-type) {
-  margin-left: -1px;
+.board-title {
+  font-size: 1.2rem;
 }
 </style>

@@ -65,7 +65,7 @@ const nextStep = () => {
     const cell = mazes.value[i].nextStep()
     steps.value[i] += cell === null ? 0 : 1
     if (cell === null) {
-      solved.value[i] = true
+      // solved.value[i] = true
       continue
     }
     if (cell[0] === width.value - 2 && cell[1] === height.value - 1) {

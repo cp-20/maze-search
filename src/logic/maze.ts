@@ -1,6 +1,6 @@
 // generated with GPT-4o
 
-import { dfsGenerator } from '@/logic/maze-generator/dfs'
+import { mazeGenerators, type MazeGeneratorAlgorithm } from '@/logic/maze-generator'
 import { PriorityQueue } from '@/logic/priority-queue'
 import { initArray2D } from '@/logic/utils'
 
@@ -23,6 +23,7 @@ export const calcPriority = (solver: MazeSolverAlgorithm, cost: number, distance
 
 export class Maze {
   private _solver: MazeSolverAlgorithm
+  private _generator: MazeGeneratorAlgorithm
   private _width: number
   private _height: number
   // 0 = passage, 1 = wall
@@ -31,11 +32,17 @@ export class Maze {
   private _cost: number[][]
   private queue: PriorityQueue<{ x: number; y: number }>
 
-  constructor(solver: MazeSolverAlgorithm, width: number, height: number) {
+  constructor(
+    solver: MazeSolverAlgorithm,
+    generator: MazeGeneratorAlgorithm,
+    width: number,
+    height: number
+  ) {
     if (width % 2 === 0 || height % 2 === 0) {
       throw new Error('Width and height must be odd numbers')
     }
     this._solver = solver
+    this._generator = generator
     this._width = width
     this._height = height
     this._maze = initArray2D(this._width, this._height, 'wall')
@@ -53,7 +60,7 @@ export class Maze {
     this.queue = new PriorityQueue<{ x: number; y: number }>([{ value: { x: 1, y: 0 }, cost: 0 }])
 
     // 左上 (スタート) から迷路を生成
-    this._maze = dfsGenerator(this._width, this._height)
+    this._maze = mazeGenerators[this._generator](this._width, this._height)
 
     // スタートとゴールを設定
     this._maze[0][1] = 'start'
@@ -112,10 +119,21 @@ export class Maze {
 
   public copyWith({
     solver,
+    generator,
     width,
     height
-  }: Partial<{ solver: MazeSolverAlgorithm; width: number; height: number }>): Maze {
-    const maze = new Maze(solver ?? this._solver, width ?? this._width, height ?? this._height)
+  }: Partial<{
+    solver: MazeSolverAlgorithm
+    generator: MazeGeneratorAlgorithm
+    width: number
+    height: number
+  }>): Maze {
+    const maze = new Maze(
+      solver ?? this._solver,
+      generator ?? this._generator,
+      width ?? this._width,
+      height ?? this._height
+    )
     maze._maze = this._maze.map((row) => row.slice())
     maze._distance = this._distance.map((row) => row.slice())
     maze._cost = this._cost.map((row) => row.slice())
@@ -133,6 +151,9 @@ export class Maze {
   }
   get solver(): MazeSolverAlgorithm {
     return this._solver
+  }
+  get generator(): MazeGeneratorAlgorithm {
+    return this._generator
   }
   get width(): number {
     return this._width

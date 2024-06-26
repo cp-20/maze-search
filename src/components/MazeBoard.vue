@@ -3,6 +3,7 @@ import PresentialMazeBoard from '@/components/PresentialMazeBoard.vue';
 
 import { computed, ref, watch } from 'vue';
 import { Maze, type MazeSolverAlgorithm } from '@/logic/maze'
+import type { MazeGeneratorAlgorithm } from '@/logic/maze-generator';
 
 const solvers: Record<MazeSolverAlgorithm, string> = {
   'a-star': 'A*',
@@ -26,12 +27,13 @@ const solved = ref<boolean[]>([false, false, false, false])
 const interval = ref<number | undefined>(undefined)
 const intervalTime = ref(100)
 const state = ref<'idle' | 'running'>('idle')
+const generator = ref<MazeGeneratorAlgorithm>('dfs')
 
 const initialMazes = computed(() => [
-  new Maze('bfs', width.value, height.value),
-  new Maze('dfs', width.value, height.value),
-  new Maze('random', width.value, height.value),
-  new Maze('a-star', width.value, height.value),
+  new Maze('bfs', generator.value, width.value, height.value),
+  new Maze('dfs', generator.value, width.value, height.value),
+  new Maze('random', generator.value, width.value, height.value),
+  new Maze('a-star', generator.value, width.value, height.value),
 ])
 const mazes = ref<Maze[]>(initialMazes.value)
 
@@ -65,7 +67,6 @@ const nextStep = () => {
     const cell = mazes.value[i].nextStep()
     steps.value[i] += cell === null ? 0 : 1
     if (cell === null) {
-      // solved.value[i] = true
       continue
     }
     if (cell[0] === width.value - 2 && cell[1] === height.value - 1) {
@@ -91,6 +92,14 @@ watch([width, height], () => {
         <input id="width" type="number" v-model="widthAtom" min="5" max="101" :disabled="state === 'running'" />
         <label for="height">高さ</label>
         <input id="height" type="number" v-model="heightAtom" min="5" max="101" :disabled="state === 'running'" />
+      </div>
+      <div class="maze-generator-select select">
+        <label for="generator">迷路生成アルゴリズム</label>
+        <select id="generator" v-model="generator" @change="regenerate()" :disabled="state === 'running'">
+          <option value="dfs">DFS</option>
+          <option value="prim">プリム法</option>
+          <option value="recursive-division">再帰分割法</option>
+        </select>
       </div>
       <div class="controller">
         <button class="control-button" @click="start()" :disabled="state === 'running'">スタート</button>
